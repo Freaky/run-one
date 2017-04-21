@@ -1,0 +1,120 @@
+#!/bin/sh -ue
+#
+# Simple process supervision/singleton-enforcement, based on current user
+# and provided arguments.
+#
+# Places lock files in ${RUN_ONCE_LOCKDIR} or ${HOME}/.cache/run-once
+#
+# A CACHEDIR.TAG file will be created there if not already found.
+#
+#   run-one - run just one instance of the given command/argument list.
+#
+#   run-this-one - kill any identical commands before running this one.
+#                - *not* limited to commands ran through run-this-one.
+#                - though it is best-effort in such a case.
+#
+#   run-one-constantly - run-one, supervise the process.
+#
+#   run-one-until-success - run-one, supervise until a successful exit.
+#
+#   run-one-until-failure - run-one, supervise until an unsuccessful exit.
+#
+#
+#
+# Copyright (c) 2017 Thomas Hurst <tom@hur.st>
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+PROG="run-once"
+
+if [ $# -eq 0 ]; then
+	echo "Usage: $0 [command]" 1>&2
+	exit 64 # EX_USAGE
+fi
+
+: "${RUN_ONCE_LOCKDIR:=}"
+
+if [ -z "${RUN_ONCE_LOCKDIR}" ]; then
+	if [ -w "$HOME" ] && [ -O "$HOME" ]; then
+		LOCKDIR="${HOME}/.cache/${PROG}"
+		mkdir -p "$LOCKDIR"
+	else
+		echo "ERROR: $HOME not writable or owned by $(id -un)" 1>&2
+		echo "Consider setting RUN_ONCE_LOCKDIR" 1>&2
+		exit 73 # EX_CANTCREAT
+	fi
+else
+	if [ -w "$RUN_ONCE_LOCKDIR" ] && [ -O "$RUN_ONCE_LOCKDIR" ]; then
+		LOCKDIR="${RUN_ONCE_LOCKDIR}"
+	else
+		echo "ERROR: $RUN_ONCE_LOCKDIR not writable or owned by $(id -un)" 1>&2
+		echo "Consider setting RUN_ONCE_LOCKDIR" 1>&2
+		exit 73 # EX_CANTCREAT
+	fi
+fi
+
+if [ ! -e "${LOCKDIR}/CACHEDIR.TAG" ]; then
+	cat >"${LOCKDIR}/CACHEDIR.TAG" <<EOT
+Signature: 8a477f597d28d172789f06886806bc55
+# This file is a cache directory tag created by ${PROG}.
+# For information about cache directory tags, see:
+#	http://www.brynosaurus.com/cachedir/
+EOT
+fi
+
+HASH=$(i=0;for arg in "$@"; do echo "ARGV[$i]($arg)";i=$((i + 1));done | sha256)
+LOCKFILE="${LOCKDIR}/${HASH}"
+
+NAME="$(basename "$0")"
+case "$NAME" in
+	run-one)
+		lockf -st0 "$LOCKFILE" "$@"
+	;;
+	run-this-one)
+		PIDS=$(pkill -u "$USER" -lxf "$@" 2>/dev/null | awk 'BEGIN { ORS=" " } { print $3 }')
+		if [ -n "$PIDS" ]; then
+			# shellcheck disable=SC2086
+			pwait -v $PIDS 2>/dev/null
+		fi
+
+		lockf -st0 "$LOCKFILE" "$@"
+	;;
+	run-one-constantly|run-one-until-success|run-one-until-failure)
+		backoff=1
+		while true; do
+			set +e
+			if lockf -st0 "$LOCKFILE" "$@"; then
+				[ "$NAME" = "run-one-until-success" ] && exit "$?"
+				backoff=1
+			else
+				[ "$NAME" = "run-one-until-failure" ] && exit "$?"
+
+				backoff=$((backoff * 2))
+				[ $backoff -gt 60 ] && backoff=60
+
+				logger -t "${NAME}[$$]" "last run failed (rc=$?); sleeping $backoff seconds"
+			fi
+			sleep "$backoff"
+		done
+	;;
+	*)
+		echo "Unknown command: $NAME" 1>&2
+		exit 64
+	;;
+esac
