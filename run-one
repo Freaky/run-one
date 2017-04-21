@@ -41,7 +41,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-PROG="run-once"
+PROG="run-one"
 
 if [ $# -eq 0 ]; then
 	echo "Usage: $0 [command]" 1>&2
