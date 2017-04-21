@@ -96,22 +96,21 @@ case "$NAME" in
 		lockf -st0 "$LOCKFILE" "$@"
 	;;
 	run-one-constantly|run-one-until-success|run-one-until-failure)
-		backoff=1
+		exec lockf -st0 "$LOCKFILE" /bin/sh -c 'backoff=1
 		while true; do
-			set +e
-			if lockf -st0 "$LOCKFILE" "$@"; then
-				[ "$NAME" = "run-one-until-success" ] && exit "$?"
+			if "$@"; then
+				[ "$0" = "run-one-until-success" ] && exit "$?"
 				backoff=1
 			else
-				[ "$NAME" = "run-one-until-failure" ] && exit "$?"
+				[ "$0" = "run-one-until-failure" ] && exit "$?"
 
 				backoff=$((backoff * 2))
 				[ $backoff -gt 60 ] && backoff=60
 
-				logger -t "${NAME}[$$]" "last run failed (rc=$?); sleeping $backoff seconds"
+				logger -t "${0}[$$]" "last run failed (rc=$?); sleeping $backoff seconds"
 			fi
 			sleep "$backoff"
-		done
+		done' "$NAME" "$@"
 	;;
 	*)
 		echo "Unknown command: $NAME" 1>&2
