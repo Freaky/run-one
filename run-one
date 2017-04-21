@@ -59,6 +59,17 @@ locked_command() {
 	fi
 }
 
+hash_stdin() {
+	if which sha256 >/dev/null 2>&1; then
+		sha256
+	elif which sha256sum >/dev/null 2>&1; then
+		sha256sum |awk '{ print $1 }'
+	else
+		echo "ERROR: Unable to find sha256(1) or sha256sum(1) in PATH" 1>&2
+		exit 69 # EX_UNAVILABLE
+	fi
+}
+
 : "${RUN_ONCE_LOCKDIR:=}"
 
 if [ -z "${RUN_ONCE_LOCKDIR}" ]; then
@@ -89,7 +100,7 @@ Signature: 8a477f597d28d172789f06886806bc55
 EOT
 fi
 
-HASH=$(i=0;for arg in "$@"; do echo "ARGV[$i]($arg)";i=$((i + 1));done | sha256)
+HASH=$(i=0;for arg in "$@"; do echo "ARGV[$i]($arg)";i=$((i + 1));done | hash_stdin)
 LOCKFILE="${LOCKDIR}/${HASH}"
 
 NAME="$(basename "$0")"
