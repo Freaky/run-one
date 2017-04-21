@@ -84,7 +84,7 @@ LOCKFILE="${LOCKDIR}/${HASH}"
 NAME="$(basename "$0")"
 case "$NAME" in
 	run-one)
-		lockf -st0 "$LOCKFILE" "$@"
+		exec lockf -st0 "$LOCKFILE" "$@"
 	;;
 	run-this-one)
 		PIDS=$(pkill -u "$USER" -lxf "$*" 2>/dev/null | awk 'BEGIN { ORS=" " } { print $3 }')
@@ -93,7 +93,7 @@ case "$NAME" in
 			pwait -v $PIDS 2>/dev/null
 		fi
 
-		lockf -st0 "$LOCKFILE" "$@"
+		exec lockf -st0 "$LOCKFILE" "$@"
 	;;
 	run-one-constantly|run-one-until-success|run-one-until-failure)
 		exec lockf -st0 "$LOCKFILE" /bin/sh -c 'backoff=1
