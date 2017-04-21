@@ -96,6 +96,7 @@ case "$NAME" in
 		exec lockf -st0 "$LOCKFILE" "$@"
 	;;
 	run-one-constantly|run-one-until-success|run-one-until-failure)
+		# shellcheck disable=SC2016
 		exec lockf -st0 "$LOCKFILE" /bin/sh -c 'backoff=1
 		while true; do
 			if "$@"; then
