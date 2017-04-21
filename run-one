@@ -87,7 +87,7 @@ case "$NAME" in
 		lockf -st0 "$LOCKFILE" "$@"
 	;;
 	run-this-one)
-		PIDS=$(pkill -u "$USER" -lxf "$@" 2>/dev/null | awk 'BEGIN { ORS=" " } { print $3 }')
+		PIDS=$(pkill -u "$USER" -lxf "$*" 2>/dev/null | awk 'BEGIN { ORS=" " } { print $3 }')
 		if [ -n "$PIDS" ]; then
 			# shellcheck disable=SC2086
 			pwait -v $PIDS 2>/dev/null
