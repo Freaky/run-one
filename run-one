@@ -70,6 +70,27 @@ hash_stdin() {
 	fi
 }
 
+kill_command() {
+	user="$(id -un)"
+	if [ "$(uname -s)" = "FreeBSD" ]; then
+		pids=$(pkill -u "$user" -lxf "$*" 2>/dev/null | awk 'BEGIN { ORS=" " } { print $3 }')
+		if [ -n "$pids" ]; then
+			# shellcheck disable=SC2086
+			pwait -v $pids 2>/dev/null
+		fi
+	else
+		pids=$(pgrep -u "$user" -xf "$*" | awk 'BEGIN { ORS=" " } { print $1 }')
+		if [ -n "$pids" ]; then
+			if pkill -u "$user" -xf "$*"; then
+				# shellcheck disable=SC2086
+				while ps $pids >/dev/null 2>&1; do
+					sleep 1
+				done
+			fi
+		fi
+	fi
+}
+
 : "${RUN_ONCE_LOCKDIR:=}"
 
 if [ -z "${RUN_ONCE_LOCKDIR}" ]; then
@@ -109,12 +130,7 @@ case "$NAME" in
 		locked_command "$LOCKFILE" "$@"
 	;;
 	run-this-one)
-		PIDS=$(pkill -u "$USER" -lxf "$*" 2>/dev/null | awk 'BEGIN { ORS=" " } { print $3 }')
-		if [ -n "$PIDS" ]; then
-			# shellcheck disable=SC2086
-			pwait -v $PIDS 2>/dev/null
-		fi
-
+		kill_command "$@"
 		locked_command "$LOCKFILE" "$@"
 	;;
 	run-one-constantly|run-one-until-success|run-one-until-failure)
