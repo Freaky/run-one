@@ -59,6 +59,12 @@ locked_command() {
 	fi
 }
 
+await_locked_command() {
+	while pids=$(pgrep -u "$(id -un)" -f "$1"); do
+		sleep 1
+	done
+}
+
 hash_stdin() {
 	if which sha256 >/dev/null 2>&1; then
 		sha256
@@ -131,6 +137,7 @@ case "$NAME" in
 	;;
 	run-this-one)
 		kill_command "$@"
+		await_locked_command "$LOCKFILE"
 		locked_command "$LOCKFILE" "$@"
 	;;
 	run-one-constantly|run-one-until-success|run-one-until-failure)
