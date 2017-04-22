@@ -1,9 +1,10 @@
 #!/bin/sh -ue
 #
-# Simple process supervision/singleton-enforcement, based on current user
-# and provided arguments.
+# run-one - Simple process supervision/singleton-enforcement, based on current
+# user and provided arguments.
 #
 # Places lock files in ${RUN_ONCE_LOCKDIR} or ${HOME}/.cache/run-once
+# This directory must be writable and owned by the calling user.
 #
 # A CACHEDIR.TAG file will be created there if not already found.
 #
@@ -19,7 +20,8 @@
 #
 #   run-one-until-failure - run-one, supervise until an unsuccessful exit.
 #
-#
+# Based on the package of the same name by Dustin Kirkland: https://launchpad.net/run-one
+# Not an exact drop-in replacement.
 #
 # Copyright (c) 2017 Thomas Hurst <tom@hur.st>
 #
