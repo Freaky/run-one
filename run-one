@@ -99,25 +99,19 @@ kill_command() {
 	fi
 }
 
-: "${RUN_ONCE_LOCKDIR:=}"
+: "${RUN_ONCE_LOCKDIR:=$HOME}"
 
-if [ -z "${RUN_ONCE_LOCKDIR}" ]; then
-	if [ -w "$HOME" ] && [ -O "$HOME" ]; then
+if  [ -w "${RUN_ONCE_LOCKDIR}" ] && [ -O "${RUN_ONCE_LOCKDIR}" ]; then
+	if [ "${RUN_ONCE_LOCKDIR}" = "${HOME}" ]; then
 		LOCKDIR="${HOME}/.cache/${PROG}"
 		mkdir -p "$LOCKDIR"
 	else
-		echo "ERROR: $HOME not writable or owned by $(id -un)" 1>&2
-		echo "Consider setting RUN_ONCE_LOCKDIR" 1>&2
-		exit 73 # EX_CANTCREAT
+		LOCKDIR="${RUN_ONCE_LOCKDIR}"
 	fi
 else
-	if [ -w "$RUN_ONCE_LOCKDIR" ] && [ -O "$RUN_ONCE_LOCKDIR" ]; then
-		LOCKDIR="${RUN_ONCE_LOCKDIR}"
-	else
-		echo "ERROR: $RUN_ONCE_LOCKDIR not writable or owned by $(id -un)" 1>&2
-		echo "Consider setting RUN_ONCE_LOCKDIR" 1>&2
-		exit 73 # EX_CANTCREAT
-	fi
+	echo "ERROR: $RUN_ONCE_LOCKDIR not writable or owned by $(id -un)" 1>&2
+	echo "This directory can be configured by setting RUN_ONCE_LOCKDIR" 1>&2
+	exit 73 # EX_CANTCREAT
 fi
 
 if [ ! -e "${LOCKDIR}/CACHEDIR.TAG" ]; then
