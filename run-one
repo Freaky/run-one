@@ -3,7 +3,7 @@
 # run-one - Simple process supervision/singleton-enforcement, based on current
 # user and provided arguments.
 #
-# Places lock files in ${RUN_ONCE_LOCKDIR} or ${HOME}/.cache/run-once
+# Places lock files in ${XDG_CACHE_HOME:${HOME}/.cache}/run-once 
 # This directory must be writable and owned by the calling user.
 #
 # A CACHEDIR.TAG file will be created there if not already found.
@@ -99,18 +99,18 @@ kill_command() {
 	fi
 }
 
-: "${RUN_ONCE_LOCKDIR:=$HOME}"
+: "${XDG_CACHE_HOME:=$HOME}"
 
-if  [ -w "${RUN_ONCE_LOCKDIR}" ] && [ -O "${RUN_ONCE_LOCKDIR}" ]; then
-	if [ "${RUN_ONCE_LOCKDIR}" = "${HOME}" ]; then
+if  [ -w "${XDG_CACHE_HOME}" ] && [ -O "${XDG_CACHE_HOME}" ]; then
+	if [ "${XDG_CACHE_HOME}" = "${HOME}" ]; then
 		LOCKDIR="${HOME}/.cache/${PROG}"
 		mkdir -p "$LOCKDIR"
 	else
-		LOCKDIR="${RUN_ONCE_LOCKDIR}"
+		LOCKDIR="${XDG_CACHE_HOME}"
 	fi
 else
-	echo "ERROR: $RUN_ONCE_LOCKDIR not writable or owned by $(id -un)" 1>&2
-	echo "This directory can be configured by setting RUN_ONCE_LOCKDIR" 1>&2
+	echo "ERROR: $XDG_CACHE_HOME not writable or owned by $(id -un)" 1>&2
+	echo "This directory can be configured by setting XDG_CACHE_HOME" 1>&2
 	exit 73 # EX_CANTCREAT
 fi
 
