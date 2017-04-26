@@ -84,7 +84,6 @@ await_pids() {
 	fi
 }
 
-
 hash_stdin() {
 	if which sha256 >/dev/null 2>&1; then
 		sha256
