@@ -87,7 +87,7 @@ kill_command() {
 			pwait -v $pids 2>/dev/null
 		fi
 	else
-		pids=$(pgrep -u "$user" -xf "$*" | awk 'BEGIN { ORS=" " } { print $1 }')
+		pids=$(pgrep -u "$user" -d " " -xf "$*")
 		if [ -n "$pids" ]; then
 			if pkill -u "$user" -xf "$*"; then
 				# shellcheck disable=SC2086
