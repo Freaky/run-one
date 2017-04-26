@@ -10,9 +10,8 @@
 #
 #   run-one - run just one instance of the given command/argument list.
 #
-#   run-this-one - kill any identical commands before running this one.
-#                - *not* limited to commands ran through run-this-one.
-#                - though it is best-effort in such a case.
+#   run-this-one - kill any other instance of the given command started
+#                  via run-this-one or run-one*, then run this one.
 #
 #   run-one-constantly - run-one, supervise the process.
 #
@@ -50,22 +49,41 @@ if [ $# -eq 0 ]; then
 	exit 64 # EX_USAGE
 fi
 
+# This command must accept parameters [lockfile] [command [arguments ..]]
+if which lockf >/dev/null 2>&1; then
+	LOCK_COMMAND="lockf -st0"
+elif which flock >/dev/null 2>&1; then
+	LOCK_COMMAND="flock -xn"
+else
+	echo "ERROR: Unable to find lockf(1) or flock(1) in PATH" 1>&2
+	exit 69 # EX_UNAVAILABLE
+fi
+
 locked_command() {
-	if which lockf >/dev/null 2>&1; then
-		exec lockf -st0 "$@"
-	elif which flock >/dev/null 2>&1; then
-		exec flock -xn "$@"
-	else
-		echo "ERROR: Unable to find lockf(1) or flock(1) in PATH" 1>&2
-		exit 69 # EX_UNAVAILABLE
+	# shellcheck disable=SC2086
+	exec $LOCK_COMMAND "$@"
+}
+
+kill_locked_command() {
+	if pids=$(pgrep -u "$(id -un)" -d " " -f "$LOCK_COMMAND .*$1"); then
+		pkill -P "$(echo "$pids" | tr ' ' ',')"
+		# shellcheck disable=SC2086
+		await_pids $pids
 	fi
 }
 
-await_locked_command() {
-	while pids=$(pgrep -u "$(id -un)" -f "$1"); do
-		sleep 1
-	done
+await_pids() {
+	if which pwait >/dev/null 2>&1; then
+		# shellcheck disable=SC2068
+		pwait $@
+	else
+		# shellcheck disable=SC2068
+		while ps $@ >/dev/null 2>&1; do
+			sleep 1
+		done
+	fi
 }
+
 
 hash_stdin() {
 	if which sha256 >/dev/null 2>&1; then
@@ -75,27 +93,6 @@ hash_stdin() {
 	else
 		echo "ERROR: Unable to find sha256(1) or sha256sum(1) in PATH" 1>&2
 		exit 69 # EX_UNAVILABLE
-	fi
-}
-
-kill_command() {
-	user="$(id -un)"
-	if [ "$(uname -s)" = "FreeBSD" ]; then
-		pids=$(pkill -u "$user" -lxf "$*" 2>/dev/null | awk 'BEGIN { ORS=" " } { print $3 }')
-		if [ -n "$pids" ]; then
-			# shellcheck disable=SC2086
-			pwait -v $pids 2>/dev/null
-		fi
-	else
-		pids=$(pgrep -u "$user" -d " " -xf "$*")
-		if [ -n "$pids" ]; then
-			if pkill -u "$user" -xf "$*"; then
-				# shellcheck disable=SC2086
-				while ps $pids >/dev/null 2>&1; do
-					sleep 1
-				done
-			fi
-		fi
 	fi
 }
 
@@ -132,8 +129,7 @@ case "$NAME" in
 		locked_command "$LOCKFILE" "$@"
 	;;
 	run-this-one)
-		kill_command "$@"
-		await_locked_command "$LOCKFILE"
+		kill_locked_command "$HASH"
 		locked_command "$LOCKFILE" "$@"
 	;;
 	run-one-constantly|run-one-until-success|run-one-until-failure)
