@@ -85,7 +85,7 @@ kill_locked_command() {
 await_pids() {
 	if which pwait >/dev/null 2>&1; then
 		# shellcheck disable=SC2068
-		pwait $@
+		pwait $@ >/dev/null 2>&1 || true
 	else
 		# shellcheck disable=SC2068
 		while ps $@ >/dev/null 2>&1; do
