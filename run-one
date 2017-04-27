@@ -135,15 +135,16 @@ case "$NAME" in
 		locked_command "$LOCKFILE" /bin/sh -c 'backoff=1
 		while true; do
 			if "$@"; then
-				[ "$0" = "run-one-until-success" ] && exit "$?"
+				[ "$0" = "run-one-until-success" ] && exit
 				backoff=1
 			else
-				[ "$0" = "run-one-until-failure" ] && exit "$?"
+				rc=$?
+				[ "$0" = "run-one-until-failure" ] && exit $rc
 
 				backoff=$((backoff * 2))
 				[ $backoff -gt 60 ] && backoff=60
 
-				logger -t "${0}[$$]" "last run failed (rc=$?); sleeping $backoff seconds"
+				logger -t "${0}[$$]" "last run failed (rc=$rc); sleeping $backoff seconds"
 			fi
 			sleep "$backoff"
 		done' "$NAME" "$@"
