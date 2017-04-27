@@ -44,10 +44,18 @@
 
 PROG="run-one"
 
-if [ $# -eq 0 ]; then
-	echo "Usage: $0 [command]" 1>&2
-	exit 64 # EX_USAGE
-fi
+EX_USAGE=64
+EX_UNAVAILABLE=69
+EX_CANTCREAT=73
+
+errexit() {
+	rc=$1
+	shift
+	echo "$@" 1>&2
+	exit "$rc"
+}
+
+[ $# -eq 0 ] && errexit $EX_USAGE "Usage: $0 [command ..]"
 
 # This command must accept parameters [lockfile] [command [arguments ..]]
 if which lockf >/dev/null 2>&1; then
@@ -55,8 +63,7 @@ if which lockf >/dev/null 2>&1; then
 elif which flock >/dev/null 2>&1; then
 	LOCK_COMMAND="flock -xn"
 else
-	echo "ERROR: Unable to find lockf(1) or flock(1) in PATH" 1>&2
-	exit 69 # EX_UNAVAILABLE
+	errexit $EX_UNAVAILABLE "ERROR: Unable to find lockf(1) or flock(1) in PATH"
 fi
 
 locked_command() {
@@ -90,25 +97,16 @@ hash_stdin() {
 	elif which sha256sum >/dev/null 2>&1; then
 		sha256sum | cut -c 1,64
 	else
-		echo "ERROR: Unable to find sha256(1) or sha256sum(1) in PATH" 1>&2
-		exit 69 # EX_UNAVILABLE
+		errexit $EX_UNAVAILABLE "ERROR: Unable to find sha256(1) or sha256sum(1) in PATH"
 	fi
 }
 
-: "${XDG_CACHE_HOME:=$HOME}"
+: "${XDG_CACHE_HOME:=${HOME}/.cache}"
 
-if  [ -w "${XDG_CACHE_HOME}" ] && [ -O "${XDG_CACHE_HOME}" ]; then
-	if [ "${XDG_CACHE_HOME}" = "${HOME}" ]; then
-		LOCKDIR="${HOME}/.cache/${PROG}"
-		mkdir -p "$LOCKDIR"
-	else
-		LOCKDIR="${XDG_CACHE_HOME}"
-	fi
-else
-	echo "ERROR: $XDG_CACHE_HOME not writable or owned by $(id -un)" 1>&2
-	echo "This directory can be configured by setting XDG_CACHE_HOME" 1>&2
-	exit 73 # EX_CANTCREAT
-fi
+LOCKDIR="${XDG_CACHE_HOME}/${PROG}"
+
+mkdir -p "$LOCKDIR" || errexit $? "ERROR: Couldn't create lock directory.  Please set XDG_CACHE_HOME."
+[ -w "$LOCKDIR" ]   || errexit $EX_CANTCREAT "ERROR: Lock directory is unwritable.  Please set XDG_CACHE_HOME."
 
 if [ ! -e "${LOCKDIR}/CACHEDIR.TAG" ]; then
 	cat >"${LOCKDIR}/CACHEDIR.TAG" <<EOT
@@ -150,7 +148,6 @@ case "$NAME" in
 		done' "$NAME" "$@"
 	;;
 	*)
-		echo "Unknown command: $NAME" 1>&2
-		exit 64
+		errexit $EX_USAGE "Unknown command: $NAME"
 	;;
 esac
