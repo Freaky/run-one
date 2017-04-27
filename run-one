@@ -1,11 +1,8 @@
 #!/bin/sh -ue
 #
-# run-one - Simple process supervision/singleton-enforcement, based on current
-# user and provided arguments.
+# run-one - Simple process supervision/singleton-enforcement.
 #
-# Places lock files in ${XDG_CACHE_HOME:${HOME}/.cache}/run-once 
-# This directory must be writable and owned by the calling user.
-#
+# Places lock files in ${XDG_CACHE_HOME:${HOME}/.cache}/run-once
 # A CACHEDIR.TAG file will be created there if not already found.
 #
 #   run-one - run just one instance of the given command/argument list.
@@ -19,9 +16,12 @@
 #
 #   run-one-until-failure - run-one, supervise until an unsuccessful exit.
 #
-# Based on the package of the same name by Dustin Kirkland: https://launchpad.net/run-one
-# Not an exact drop-in replacement.
+###############################################################################
 #
+# Implements (more or less) the same interface as the package of the same name
+# by Dustin Kirkland: https://launchpad.net/run-one
+#
+###############################################################################
 # Copyright (c) 2017 Thomas Hurst <tom@hur.st>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -41,6 +41,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+###############################################################################
 
 PROG="run-one"
 
