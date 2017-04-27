@@ -111,14 +111,12 @@ LOCKDIR="${XDG_CACHE_HOME}/${PROG}"
 mkdir -p "$LOCKDIR" || errexit $? "ERROR: Couldn't create lock directory.  Please set XDG_CACHE_HOME."
 [ -w "$LOCKDIR" ]   || errexit $EX_CANTCREAT "ERROR: Lock directory is unwritable.  Please set XDG_CACHE_HOME."
 
-if [ ! -e "${LOCKDIR}/CACHEDIR.TAG" ]; then
-	cat >"${LOCKDIR}/CACHEDIR.TAG" <<EOT
+[ -e "${LOCKDIR}/CACHEDIR.TAG" ] || cat >"${LOCKDIR}/CACHEDIR.TAG" <<EOT
 Signature: 8a477f597d28d172789f06886806bc55
 # This file is a cache directory tag created by ${PROG}.
 # For information about cache directory tags, see:
 #	http://www.brynosaurus.com/cachedir/
 EOT
-fi
 
 HASH=$(i=0;for arg in "$@"; do echo "ARGV[$i]($arg)";i=$((i + 1));done | hash_stdin)
 LOCKFILE="${LOCKDIR}/${HASH}"
