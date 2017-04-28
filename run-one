@@ -45,6 +45,9 @@
 
 PROG="run-one"
 
+# Time limit for pwait/ps + sleep loop in run-this-one
+KILL_WAIT_LIMIT=60
+
 EX_USAGE=64
 EX_UNAVAILABLE=69
 EX_CANTCREAT=73
@@ -83,12 +86,17 @@ kill_locked_command() {
 }
 
 await_pids() {
-	if which pwait >/dev/null 2>&1; then
+	if which pwait >/dev/null 2>&1 && which timeout >/dev/null 2>&1; then
 		# shellcheck disable=SC2068
-		pwait $@ >/dev/null 2>&1 || true
+		if ! timeout "$KILL_WAIT_LIMIT" pwait $@ >/dev/null 2>&1; then
+			errexit $EX_UNAVAILABLE "${KILL_WAIT_TIMEOUT} second timeout waiting for pids: $@"
+		fi
 	else
+		limit=$KILL_WAIT_LIMIT
 		# shellcheck disable=SC2068
 		while ps $@ >/dev/null 2>&1; do
+			limit=$(( limit - 1 ))
+			[ $limit -eq 0 ] && errexit $EX_UNAVAILABLE "${KILL_WAIT_TIMEOUT} second timeout waiting for pids: $@"
 			sleep 1
 		done
 	fi
