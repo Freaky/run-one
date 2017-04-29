@@ -1,0 +1,145 @@
+.\"
+.\" Copyright (c) 2017 Thomas Hurst <tom@hur.st>
+.\" 
+.\" Permission is hereby granted, free of charge, to any person obtaining a copy
+.\" of this software and associated documentation files (the "Software"), to deal
+.\" in the Software without restriction, including without limitation the rights
+.\" to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+.\" copies of the Software, and to permit persons to whom the Software is
+.\" furnished to do so, subject to the following conditions:
+.\" 
+.\" The above copyright notice and this permission notice shall be included in all
+.\" copies or substantial portions of the Software.
+.\" 
+.\" THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+.\" IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+.\" FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+.\" AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+.\" LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+.\" OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+.\" SOFTWARE.
+.\"
+.Dd $Mdocdate$
+.Dt RUN-ONE 1
+.Os
+.Sh NAME
+.Nm run-one ,
+.Nm run-one-constantly ,
+.Nm run-one-until-failure ,
+.Nm run-one-until-success ,
+.Nm run-this-one
+.Nd run one copy of a command
+.Sh SYNOPSIS
+.Nm run-one
+.Op Cm command ...
+.Nm run-one-constantly
+.Op Cm command ...
+.Nm run-one-until-failure
+.Op Cm command ...
+.Nm run-one-until-success
+.Op Cm command ...
+.Nm run-this-one
+.Op Cm command ...
+.Sh DESCRIPTION
+The
+.Nm
+utility is a thin wrapper around the
+.Xr lockf 1
+or
+.Xr flock 1
+command.
+.Pp
+.Nm
+hashes its arguments, and uses it to name a lock file
+within ${XDG_CACHE_HOME}/run-one
+.Pp
+.Xr lockf 1
+or
+.Xr flock 1
+is then used to prevent multiple instances of the command from
+being executed, by exiting immediately if the lock cannot be acquired.
+.Pp
+.Nm run-this-one
+operates identically, but prior to attempting to run
+the command, it uses
+.Xr pgrep 1
+to locate any existing instance of
+.Xr lockf 1
+with the given lockfile, and will
+.Xr kill 1
+its children and wait for
+.Xr lockf 1
+to exit before attempting to run the command.
+.Pp
+Exits with EX_UNAVAILABLE if the process is still running after 60 seconds.
+.Pp
+.Nm run-one-constantly
+behaves as
+.Nm run-one
+but will wrap the command in a loop, re-running it when it exits
+with a 1 second delay between invocations.
+.Pp
+If the command exits with a non-zero return code, the delay is doubled
+and
+.Xr logger 1
+called to log the failure, up to a maximum of 60 seconds.
+.Pp
+.Nm run-one-until-success
+behaves identically, but will exit if the command exits with a zero return
+code.
+.Pp
+.Nm run-one-until-failure
+will exit if the command exits with a non-zero return code. No logging is performed.
+.Sh ENVIRONMENT
+.Bl -tag -width "XDG_CACHE_HOME"
+.It XDG_CACHE_HOME
+Lock files are stored in this directory under a
+.Nm
+subdirectory.  ${HOME}/.cache is used as a fallback location. if it is unset.
+.Pp
+This directory must be owned and writable by the calling user.
+.Sh EXAMPLES
+In a cronjob:
+.Pp
+.Dl @hourly run-one rsync -a $HOME $USER@backup:/srv/backups/$USER
+.Pp
+If
+.Nm rsync
+runs for longer than an hour,
+.Nm
+will exit with EX_TEMPFAIL.
+.Pp
+.Dl @hourly run-one-until-success rsync -a $HOME $USER@backup:/srv/backups/$USER
+.Pp
+If the connection to the backup server is unreliable, this variant will retry the command
+until rsync exits with a zero return code.
+.Pp
+.Dl @hourly run-this-one rsync -a $HOME $USER@backup:/srv/backups/$USER
+.Pp
+If a previous instance of this rsync command is still running, kill it and start a fresh one.
+.Sh SEE ALSO
+.Xr kill 1
+.Xr lockf 1
+.Xr logger 1
+.Xr pgrep 1
+.Xr pwait 1
+.Xr sha256 1
+.Sh HISTORY
+.Nm
+and
+.Nm run-this-one
+commands first appeared in the
+.Nm
+package by Dustin Kirkland in Ubuntu 11.04.
+.Pp
+.Nm run-this-one-constantly ,
+.Nm run-this-one-until-success
+and
+.Nm run-this-one-until-failure
+appeared in Ubuntu 13.10.
+.Pp
+The
+.Nm keep-one-running
+alias is not provided by this implementation.
+.Sh AUTHORS
+.An Thomas Hurst Aq tom@hur.st
