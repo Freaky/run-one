@@ -132,7 +132,10 @@ Signature: 8a477f597d28d172789f06886806bc55
 #	http://www.brynosaurus.com/cachedir/
 EOT
 
-HASH=$(i=0;for arg in "$@"; do echo "ARGV[$i]($arg)";i=$((i + 1));done | hash_stdin)
+HASH=$(for arg in "$@"; do
+		echo "$arg" | sed -e 's/ARGV/\\ARGV/g' -e 's/^\(.*\)$/ARGV(\1)/'
+	done | hash_stdin)
+
 LOCKFILE="${LOCKDIR}/${HASH}"
 
 NAME="$(basename "$0")"
