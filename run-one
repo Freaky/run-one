@@ -96,13 +96,13 @@ kill_locked_command() {
 await_pids() {
 	if which pwait >/dev/null 2>&1 && which timeout >/dev/null 2>&1; then
 		if ! timeout "$KILL_WAIT_TIMEOUT" pwait "$@" >/dev/null 2>&1; then
-			errexit $EX_UNAVAILABLE "${KILL_WAIT_TIMEOUT} second timeout waiting for pids: $@"
+			errexit $EX_UNAVAILABLE "${KILL_WAIT_TIMEOUT} second timeout waiting for pids: $*"
 		fi
 	else
 		limit=$KILL_WAIT_TIMEOUT
 		while ps "$@" >/dev/null 2>&1; do
 			limit=$(( limit - 1 ))
-			[ $limit -eq 0 ] && errexit $EX_UNAVAILABLE "${KILL_WAIT_TIMEOUT} second timeout waiting for pids: $@"
+			[ $limit -eq 0 ] && errexit $EX_UNAVAILABLE "${KILL_WAIT_TIMEOUT} second timeout waiting for pids: $*"
 			sleep 1
 		done
 	fi
