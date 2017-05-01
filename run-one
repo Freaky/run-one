@@ -79,7 +79,7 @@ locked_command() {
 }
 
 kill_locked_command() {
-	if pids=$(pgrep -u "$(id -un)" -d " " -f "$LOCK_COMMAND .*$1"); then
+	if pids=$(pgrep -u "$(id -un)" -d " " -f "^$LOCK_COMMAND .*$1"); then
 		for pid in $pids; do
 			pkill -P "$pid" >/dev/null 2>&1 || true
 		done
