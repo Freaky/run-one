@@ -51,6 +51,7 @@ KILL_WAIT_TIMEOUT=60
 EX_USAGE=64
 EX_UNAVAILABLE=69
 EX_CANTCREAT=73
+EX_TEMPFAIL=75
 
 set -ue
 
@@ -67,7 +68,7 @@ errexit() {
 if which lockf >/dev/null 2>&1; then
 	LOCK_COMMAND="lockf -st0"
 elif which flock >/dev/null 2>&1; then
-	LOCK_COMMAND="flock -xn"
+	LOCK_COMMAND="flock -xnE${EX_TEMPFAIL}"
 else
 	errexit $EX_UNAVAILABLE "ERROR: Unable to find lockf(1) or flock(1) in PATH"
 fi
