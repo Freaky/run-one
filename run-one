@@ -66,10 +66,14 @@ errexit() {
 
 [ $# -eq 0 ] && errexit $EX_USAGE "Usage: $0 [command ..]"
 
+has_command() {
+	command -v "$@" >/dev/null 2>&1
+}
+
 # This command must accept parameters [lockfile] [command [arguments ..]]
-if which lockf >/dev/null 2>&1; then
+if has_command lockf; then
 	LOCK_COMMAND="lockf -st0"
-elif which flock >/dev/null 2>&1; then
+elif has_command flock; then
 	LOCK_COMMAND="flock -xnE${EX_TEMPFAIL}"
 else
 	errexit $EX_UNAVAILABLE "ERROR: Unable to find lockf(1) or flock(1) in PATH"
@@ -94,7 +98,7 @@ kill_locked_command() {
 }
 
 await_pids() {
-	if which pwait >/dev/null 2>&1 && which timeout >/dev/null 2>&1; then
+	if has_command pwait && has_command timeout; then
 		if ! timeout $KILL_WAIT_TIMEOUT pwait "$@" >/dev/null 2>&1; then
 			errexit $EX_UNAVAILABLE "${KILL_WAIT_TIMEOUT} second timeout waiting for pids: $*"
 		fi
@@ -109,9 +113,9 @@ await_pids() {
 }
 
 hash_stdin() {
-	if which sha256 >/dev/null 2>&1; then
+	if has_command sha256; then
 		sha256
-	elif which sha256sum >/dev/null 2>&1; then
+	elif has_command sha256sum; then
 		sha256sum | cut -c 1,64
 	else
 		errexit $EX_UNAVAILABLE "ERROR: Unable to find sha256(1) or sha256sum(1) in PATH"
