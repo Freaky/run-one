@@ -140,7 +140,7 @@ HASH=$(for arg in "$@"; do
 		echo "$arg" | sed -e 's/ARGV/\\ARGV/g' -e 's/^\(.*\)$/ARGV(\1)/'
 	done | hash_stdin)
 
-LOCKFILE="${LOCKDIR}/${HASH}"
+LOCKFILE="${LOCKDIR}/${HASH}.lock"
 
 NAME="$(basename "$0")"
 case "$NAME" in
