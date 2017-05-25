@@ -43,14 +43,7 @@
 .Sh DESCRIPTION
 The
 .Nm
-utility is a thin wrapper around the
-.Xr lockf 1
-or
-.Xr flock 1
-command.
-.Pp
-.Nm
-hashes its arguments, and uses it to name a lock file
+utility hashes its arguments, and uses it to name a lock file
 within ${XDG_CACHE_HOME}/run-one
 .Pp
 .Xr lockf 1
@@ -71,7 +64,7 @@ its children and wait for
 .Xr lockf 1
 to exit before attempting to run the command.
 .Pp
-Exits with EX_UNAVAILABLE if the process is still running after 60 seconds.
+It exits with EX_UNAVAILABLE if the process is still running after 60 seconds.
 .Pp
 .Nm run-one-constantly
 behaves as
@@ -96,16 +89,12 @@ will exit if the command exits with a non-zero return code. No logging is perfor
 Lock files are stored in this directory under a
 .Nm
 subdirectory.  ${HOME}/.cache is used as a fallback location. if it is unset.
-.Pp
-This directory must be owned and writable by the calling user.
 .Sh EXAMPLES
 In a cronjob:
 .Pp
 .Dl @hourly run-one rsync -a $HOME $USER@backup:/srv/backups/$USER
 .Pp
-If
-.Nm rsync
-runs for longer than an hour,
+If an existing instance of this job is running,
 .Nm
 will exit with EX_TEMPFAIL.
 .Pp
