@@ -153,7 +153,7 @@ case "$NAME" in
 	;;
 	run-one-constantly|run-one-until-success|run-one-until-failure)
 		# shellcheck disable=SC2016
-		locked_command "$LOCKFILE" /bin/sh -c 'backoff=1
+		locked_command "$LOCKFILE" /bin/sh -uec 'backoff=1
 		while true; do
 			if "$@"; then
 				[ "$0" = "run-one-until-success" ] && exit
