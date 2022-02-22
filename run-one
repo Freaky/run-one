@@ -118,7 +118,7 @@ hash_stdin() {
 	if has_command sha256; then
 		sha256
 	elif has_command sha256sum; then
-		sha256sum | cut -c 1,64
+		sha256sum | cut -c 1-64
 	else
 		errexit $EX_UNAVAILABLE "ERROR: Unable to find sha256(1) or sha256sum(1) in PATH"
 	fi
