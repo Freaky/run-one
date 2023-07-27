@@ -2,7 +2,7 @@
 #
 # run-one - Simple process supervision/singleton-enforcement.
 #
-# Places lock files in ${XDG_CACHE_HOME:${HOME}/.cache}/run-once
+# Places lock files in ${XDG_CACHE_HOME:${HOME}/.cache}/run-one
 # A CACHEDIR.TAG file will be created there if not already found.
 #
 #   run-one - run just one instance of the given command/argument list.
